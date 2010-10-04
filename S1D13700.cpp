@@ -38,12 +38,31 @@ const unsigned char SplashText_Screen[30][41]=
 	"                               using AND",  // 28
 	"                               OR or XOR"}; // 29
 
-void S1D13700::clear_text_layer() {
 
-    //position cursor at beginning of text layer
-    command(CSRW);
-	write(SAD1_2);
-	write(SAD1_1);
+void S1D13700::switchLayer(uint8_t layer) {
+    switch (_current_layer) {
+    case 1:
+        _current_layer_mempos = 0;
+        break;
+    case 2:
+        _current_layer_mempos = SAD1_LEN;
+        break;
+    case 3:
+        _current_layer_mempos = SAD1_LEN + SAD1_LEN;
+        break;
+    default:
+        throw 5; //this is an error throw... probably going to update how this works.
+        break;
+    }
+
+    //if we make it this far, set the current layer.
+    _current_layer = layer;
+}
+
+void S1D13700::clearTextLayer() {
+
+    //position cursor at beginning of text laye
+    setMemPosition(SAD1_2, SAD1_1);
 
     //clearing loop
     for(int i = 0; i < SAD1_LEN; i++) {
@@ -54,12 +73,10 @@ void S1D13700::clear_text_layer() {
 	}
 }
 
-void S1D13700::clear_layer_2() {
+void S1D13700::clearLayer2() {
 
     //position cursor at beginning of second display block
-	command(CSRW);
-	write(SAD2_2);
-	write(SAD2_1);
+    setMemPosition(SAD2_2, SAD2_1);
 
     //clear loop
 	for(int i = 0; i < SAD2_LEN; i++) {
@@ -70,12 +87,10 @@ void S1D13700::clear_layer_2() {
 	}
 }
 
-void S1D13700::clear_layer_3() {
+void S1D13700::clearLayer3() {
 
     //position cursor at beginning of second display block
-	command(CSRW);
-	write(SAD3_2);
-	write(SAD3_1);
+    setMemPosition(SAD3_2, SAD3_1);
 
     //clear loop
 	for(int i = 0; i < SAD2_LEN; i++) {
@@ -124,6 +139,8 @@ void S1D13700::init(uint8_t res, uint8_t a0, uint8_t rw, uint8_t enable, uint8_t
 	uint8_t d0, uint8_t d1, uint8_t d2, uint8_t d3,
 	uint8_t d4, uint8_t d5, uint8_t d6, uint8_t d7)
 {
+    _cursorPos.x = 0;
+    _cursorPos.y = 0;
 
 	//tackle all pin assignments
 	_res_pin = res;
@@ -159,7 +176,7 @@ void S1D13700::begin() {
 
     // according to datasheet, we need at least 40ms after power rises above 2.7V
     // before sending commands. Arduino can turn on way befer 4.5V so we'll wait 50
-	delayMicroseconds(50000); 
+	delayMicroseconds(50000);
 
     // Now we pull both A0 and R/W low to begin commands
 	digitalWrite(_a0_pin, LOW);
@@ -213,13 +230,11 @@ void S1D13700::begin() {
     // write(0x54); //cursor off
 
     //wipe all layers in use
-    clear_text_layer();
-    clear_layer_2();
-    clear_layer_3();
+    clearTextLayer();
+    clearLayer2();
+    clearLayer3();
     
-	command(CSRW);
-	write(SAD1_2);
-	write(SAD1_1);
+    setMemPosition(SAD1_2, SAD1_1);
 
     //CSR_FORM:
 	command(CSRFORM);
@@ -240,24 +255,46 @@ void S1D13700::begin() {
 	write(0x50);
 	write(0x53);
 	write(0x4F);
-	write(0x4E);	
+	write(0x4E);
+
+    switch_layer(2); //switch so drawing occurs on second layer.
 }
 
 
 /*********** drawing commands ********/
 
-// the most basic function, set a single pixel
-// void S1D13700::setpixel(uint8_t x, uint8_t y, uint8_t color) {
-//     if ((x >= LCDWIDTH) || (y >= LCDHEIGHT))
-//         return;
+//sets the memory position to the 
+void S1D13700::setMemPosition(uint8_t highByte, uint8_t lowByte) {
+    command(CSRW);
+	write(highByte);
+	write(lowByte);
+}
 
-//     // x is which column
-//     if (color) 
-//         buffer[x+ (y/8) * LCDWIDTH] |= _BV(7-(y%8));  
-//     else
-//         buffer[x+ (y/8) * LCDWIDTH] &= ~_BV(7-(y%8)); 
-// }
+void S1D13700::setCursor(uint8_t xCursor, uint8_t yCursor) {
 
+    //remember that the y position is the line, and the x position is the cursor spot.
+    _cursorPos.x = xCursor;
+    _cursorPos.y = yCursor;
+    
+    uint8_t memPos = _current_layer_mempos + xCursor + (yCursor * 40); //40 bytes across the screen... fix this
+    setMemPosition(HINIBBLE(memPos), LONIBBLE(memPos));
+}
+
+// the most basic function, set a single pixel.
+// (later, add support for a white or black pen.)
+void S1D13700::setPixel(uint8_t xPos, uint8_t yPos, uint8_t color) {
+    if ((xPos >= LCDWIDTH) || (yPos >= LCDHEIGHT))
+        return;
+
+    //set the cursor to the proper character position"
+    setCursor(xPos / 8, yPos); //the x should be divided by bits per character... y's good as "lines"
+    
+    uint8_t xBit = 0x80 >> (xPos mod 8); //x position along the character of the bit to be flipped.
+
+    command(MEMWRITE);
+
+    //to expand this, I actually do have to read from the display and see what's getting displayed right now.
+}
 
 
 /*********** mid level commands, for sending data/cmds */

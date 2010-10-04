@@ -48,6 +48,17 @@
 #define SAD4_1		  	0x00
 #define SAD4_2		  	0x00
 
+//functions for splitting hex
+#define HINIBBLE(b) (((b)&0xF0) >> 4) //thanks, wiki! (Article on Nibbles)
+#define LONIBBLE(b) ((b)&0x0F //thanks, wiki! (Article on Nibbles)
+
+
+struct TPositionS1D13700
+{
+    uint8_t x;
+    uint8_t y;
+} _cursorPos;
+
 class S1D13700 : public Print {
 public:
 	S1D13700(uint8_t res, uint8_t a0, uint8_t rw, uint8_t enable, uint8_t cs,
@@ -62,13 +73,13 @@ public:
 		uint8_t d4, uint8_t d5, uint8_t d6, uint8_t d7);
 
 	void begin();
-	
-void clear_text_layer();
-void clear_layer_2();
-void clear_layer_3();
-	void clear();
-	void home();
 
+    void switchLayer(uint8_t);
+    void clearTextLayer();
+    void clearLayer2();
+    void clearLayer3();
+
+    //These don't actually exist yet.
 	void noDisplay();
 	void display();
 	void noBlink();
@@ -82,19 +93,27 @@ void clear_layer_3();
 	void autoscroll();
 	void noAutoscroll();
 
+    
 	void createChar(uint8_t, uint8_t[]);
-	void setCursor(uint8_t, uint8_t); 
-	virtual void write(uint8_t);
+	void setCursor(uint8_t, uint8_t);
+    
+    //drawing commands
+    void setMemPosition(uint8_t, uint8_t);
+    void setPosition(uint8_t, uint8_t);
+    void setPixel(uint8_t, uint8_t, uint8_t);
+    
+    virtual void write(uint8_t);
 	void command(uint8_t);
 private:
 	void send(uint8_t, uint8_t);
 	void write8bits(uint8_t);
 
 	void reset();
-void pulseEnable();
+    void pulseEnable();
 
-
-uint8_t _current_layer; //1, 2 or 3.
+    
+    uint8_t _current_layer; //1, 2 or 3.
+    uint8_t _current_layer_mempos; //memory position of current layer
 	uint8_t _res_pin; // LOW: Active. HIGH: Reset.
 	uint8_t _a0_pin; // LOW: command.  HIGH: character.
 	uint8_t _cs_pin; // LOW: select chip.  HIGH: bus will ignore commands.
