@@ -162,7 +162,7 @@ void S1D13700::init(uint8_t res, uint8_t a0, uint8_t rw, uint8_t enable, uint8_t
 
 	pinMode(_res_pin, OUTPUT);
 	pinMode(_a0_pin, OUTPUT);
-	pinMode(_cs_pin, OUTPUT);
+	// pinMode(_cs_pin, OUTPUT);
 
     // we can save 1 pin by not using RW. Indicate by passing 255 instead of pin#
 	if (_rw_pin != 255) { 
@@ -248,60 +248,40 @@ void S1D13700::begin() {
 	command(CSRDIR_RIGHT);
 
     switchLayer(1); //switch so drawing occurs on second layer.
-    // setCursor(0,179);
+    setCursor(0,179);
 
-    // command(MEMWRITE);
+    command(MEMWRITE);
 
-    // //fill out somewhat random section in ro
-    // for (int row = 0; row < 60; row++) {
-    //     for (int col = 0; col < 40; col++)
-    //         {
-    //             if (row % 2 == 0)
-    //                 {
-    //                     write(0xF1);                        
-    //                 }
-    //             else {
-    //                 write(0x00);
-    //             }
-    //         }
-    // }
+    for (int row = 0; row < 60; row++) {
+        for (int col = 0; col < 40; col++)
+            {
+                if (row % 2 == 0)
+                    {
+                        write(0xF1);                        
+                    }
+                else {
+                    write(0x00);
+                }
+            }
+    }
 
-
-    // switchLayer(2);
-    // setCursor(0,0);
-    // command(MEMWRITE);
-
-    // //fill out somewhat random section in ro
-    // for (int row = 0; row < 60; row++) {
-    //     for (int col = 0; col < 40; col++)
-    //         {
-    //             if (row % 2 == 0)
-    //                 {
-    //                     write(0xF1);                        
-    //                 }
-    //             else {
-    //                 write(0x00);
-    //             }
-    //         }
-    // }
+    //get the damned pixel value
+    uint8_t thePixels = readByte(5, 179);
     
-    // switchLayer(3);
-    // setCursor(0,119);
-    // command(MEMWRITE);
+    switchLayer(2);
+    setCursor(0,0);
+    command(MEMWRITE);
 
-    // //fill out somewhat random section in ro
-    // for (int row = 0; row < 60; row++) {
-    //     for (int col = 0; col < 40; col++)
-    //         {
-    //             if (row % 2 == 0)
-    //                 {
-    //                     write(0xF1);                        
-    //                 }
-    //             else {
-    //                 write(0x00);
-    //             }
-    //         }
-    // }
+    for (int row = 0; row < 60; row++) {
+        for (int col = 0; col < 40; col++) {
+            if (row % 2 == 0) {
+                write(thePixels);
+            }
+            else {
+                write(0x00);
+            }
+        }
+    }
 }
 
 
@@ -327,6 +307,17 @@ void S1D13700::setCursor(uint8_t xCursor, uint8_t yCursor) {
     uint8_t loNib = (uint8_t)LONIBBLE(memPos);
 
     setMemPosition(hiNib, loNib);            
+}
+
+uint8_t S1D13700::readByte(uint8_t xPos, uint8_t yPos) {
+    if ((xPos >= LCDWIDTH / 8) || (yPos >= LCDHEIGHT))
+        return 0x00;
+
+    //set the cursor to the proper character position"
+    setCursor(xPos, yPos); //the x should be divided by bits per character... y's good as "lines"
+
+    command(MEMREAD);
+    return read();
 }
 
 // the most basic function, set a single pixel.
@@ -358,7 +349,33 @@ inline void S1D13700::write(uint8_t value) {
 	send(value, LOW);
 }
 
+uint8_t S1D13700::read() {
+
+    
+    uint8_t ret = 0x00;
+    //a0 pin goes high to read.
+    digitalWrite(_a0_pin, HIGH);
+    
+    //set rw pin high to read
+    digitalWrite(_rw_pin, HIGH);
+
+    digitalWrite(_enable_pin, HIGH);
+    delayMicroseconds(1);
+
+    //go through pin array, 
+    for (int i = 0; i < 8; i++) {
+        pinMode(_data_pins[i], INPUT);
+        ret |= (digitalRead(_data_pins[i]) << i);
+    }
+
+    digitalWrite(_enable_pin, LOW);
+    delayMicroseconds(2);
+
+    return ret;
+}
+
 /************ low level data pushing commands **********/
+
 
 // write either command or data, with automatic 4/8-bit selection
 void S1D13700::send(uint8_t value, uint8_t mode) {
@@ -395,5 +412,4 @@ void S1D13700::write8bits(uint8_t value) {
 
 	pulseEnable();
 }
-
 

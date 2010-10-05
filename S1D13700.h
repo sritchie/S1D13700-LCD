@@ -101,9 +101,13 @@ public:
     void setMemPosition(uint8_t, uint8_t);
     void setPosition(uint8_t, uint8_t);
     void setPixel(uint8_t, uint8_t, uint8_t);
+
+    uint8_t readByte(uint8_t xPos, uint8_t yPos);
     
     virtual void write(uint8_t);
 	void command(uint8_t);
+    uint8_t read();
+    
 private:
 	void send(uint8_t, uint8_t);
 	void write8bits(uint8_t);
