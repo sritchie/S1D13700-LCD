@@ -45,13 +45,13 @@ void S1D13700::switchLayer(uint8_t layer) {
         _current_layer_mempos = 0;
         break;
     case 2:
-        _current_layer_mempos = SAD1_LEN;
+        _current_layer_mempos = SAD2_ADDR;
         break;
     case 3:
-        _current_layer_mempos = SAD1_LEN + SAD1_LEN;
+        _current_layer_mempos = SAD3_ADDR;
         break;
     default:
-        throw 5; //this is an error throw... probably going to update how this works.
+        // throw 5; //this is an error throw... probably going to update how this works.
         break;
     }
 
@@ -62,21 +62,22 @@ void S1D13700::switchLayer(uint8_t layer) {
 void S1D13700::clearTextLayer() {
 
     //position cursor at beginning of text laye
-    setMemPosition(SAD1_2, SAD1_1);
+    setMemPosition(SAD1_1, SAD1_2);
+
+    command(MEMWRITE);
 
     //clearing loop
     for(int i = 0; i < SAD1_LEN; i++) {
 
         //loop through and write a space character to every location in text layer
-		command(MEMWRITE);
-		write(0x20);
+		write(0x00);
 	}
 }
 
 void S1D13700::clearLayer2() {
 
     //position cursor at beginning of second display block
-    setMemPosition(SAD2_2, SAD2_1);
+    setMemPosition(SAD2_1, SAD2_2);
 
     //clear loop
 	for(int i = 0; i < SAD2_LEN; i++) {
@@ -90,7 +91,7 @@ void S1D13700::clearLayer2() {
 void S1D13700::clearLayer3() {
 
     //position cursor at beginning of second display block
-    setMemPosition(SAD3_2, SAD3_1);
+    setMemPosition(SAD3_1, SAD3_2);
 
     //clear loop
 	for(int i = 0; i < SAD2_LEN; i++) {
@@ -172,8 +173,6 @@ void S1D13700::init(uint8_t res, uint8_t a0, uint8_t rw, uint8_t enable, uint8_t
 
 void S1D13700::begin() {
 
-	int i;
-
     // according to datasheet, we need at least 40ms after power rises above 2.7V
     // before sending commands. Arduino can turn on way befer 4.5V so we'll wait 50
 	delayMicroseconds(50000);
@@ -221,7 +220,7 @@ void S1D13700::begin() {
 
     //OVERLAY:
 	command(OVLAY);
-	write(0x01);	// SB1 = Graphics
+	write(0x1C);	// SB1 = Graphics
 					// SB3 = Text
 					// Exculsive-OR
 					
@@ -234,7 +233,7 @@ void S1D13700::begin() {
     clearLayer2();
     clearLayer3();
     
-    setMemPosition(SAD1_2, SAD1_1);
+    setMemPosition(SAD1_1, SAD1_2);
 
     //CSR_FORM:
 	command(CSRFORM);
@@ -248,36 +247,86 @@ void S1D13700::begin() {
 	//set the cursor direction to "right"
 	command(CSRDIR_RIGHT);
 
-    //write "epson" to the screen
-	command(MEMWRITE);
-	write(0x20);
-	write(0x45);
-	write(0x50);
-	write(0x53);
-	write(0x4F);
-	write(0x4E);
+    switchLayer(1); //switch so drawing occurs on second layer.
+    // setCursor(0,179);
 
-    switch_layer(2); //switch so drawing occurs on second layer.
+    // command(MEMWRITE);
+
+    // //fill out somewhat random section in ro
+    // for (int row = 0; row < 60; row++) {
+    //     for (int col = 0; col < 40; col++)
+    //         {
+    //             if (row % 2 == 0)
+    //                 {
+    //                     write(0xF1);                        
+    //                 }
+    //             else {
+    //                 write(0x00);
+    //             }
+    //         }
+    // }
+
+
+    // switchLayer(2);
+    // setCursor(0,0);
+    // command(MEMWRITE);
+
+    // //fill out somewhat random section in ro
+    // for (int row = 0; row < 60; row++) {
+    //     for (int col = 0; col < 40; col++)
+    //         {
+    //             if (row % 2 == 0)
+    //                 {
+    //                     write(0xF1);                        
+    //                 }
+    //             else {
+    //                 write(0x00);
+    //             }
+    //         }
+    // }
+    
+    // switchLayer(3);
+    // setCursor(0,119);
+    // command(MEMWRITE);
+
+    // //fill out somewhat random section in ro
+    // for (int row = 0; row < 60; row++) {
+    //     for (int col = 0; col < 40; col++)
+    //         {
+    //             if (row % 2 == 0)
+    //                 {
+    //                     write(0xF1);                        
+    //                 }
+    //             else {
+    //                 write(0x00);
+    //             }
+    //         }
+    // }
 }
 
 
 /*********** drawing commands ********/
 
 //sets the memory position to the 
-void S1D13700::setMemPosition(uint8_t highByte, uint8_t lowByte) {
+void S1D13700::setMemPosition(uint8_t hiByte, uint8_t lowByte) {
     command(CSRW);
-	write(highByte);
 	write(lowByte);
+	write(hiByte);
 }
 
+//cursor goes from 0 to 39 (x), 0 to 29 in text layer (y)
 void S1D13700::setCursor(uint8_t xCursor, uint8_t yCursor) {
 
     //remember that the y position is the line, and the x position is the cursor spot.
     _cursorPos.x = xCursor;
     _cursorPos.y = yCursor;
-    
-    uint8_t memPos = _current_layer_mempos + xCursor + (yCursor * 40); //40 bytes across the screen... fix this
-    setMemPosition(HINIBBLE(memPos), LONIBBLE(memPos));
+
+    uint16_t memPos = _current_layer_mempos + xCursor + (yCursor * 40); //40 bytes across the screen... fix this    
+
+    uint8_t hiNib = (uint8_t)HINIBBLE(memPos);
+    uint8_t loNib = (uint8_t)LONIBBLE(memPos);
+
+    setMemPosition(hiNib, loNib);            
 }
 
 // the most basic function, set a single pixel.
@@ -288,12 +337,14 @@ void S1D13700::setPixel(uint8_t xPos, uint8_t yPos, uint8_t color) {
 
     //set the cursor to the proper character position"
     setCursor(xPos / 8, yPos); //the x should be divided by bits per character... y's good as "lines"
-    
-    uint8_t xBit = 0x80 >> (xPos mod 8); //x position along the character of the bit to be flipped.
+
+    uint8_t xBit = 0x80 >> (xPos % 8); //x position along the character of the bit to be flipped.
 
     command(MEMWRITE);
+    write(xBit);
 
     //to expand this, I actually do have to read from the display and see what's getting displayed right now.
+    //that way I can take a line and modify it.
 }
 
 

@@ -49,15 +49,15 @@
 #define SAD4_2		  	0x00
 
 //functions for splitting hex
-#define HINIBBLE(b) (((b)&0xF0) >> 4) //thanks, wiki! (Article on Nibbles)
-#define LONIBBLE(b) ((b)&0x0F //thanks, wiki! (Article on Nibbles)
+#define HINIBBLE(b) (((b) & 0xFF00) >> 8) //thanks, wiki! (Article on Nibbles)
+#define LONIBBLE(b) ((b) & 0x00FF) //thanks, wiki! (Article on Nibbles)
 
 
 struct TPositionS1D13700
 {
     uint8_t x;
     uint8_t y;
-} _cursorPos;
+};
 
 class S1D13700 : public Print {
 public:
@@ -111,9 +111,10 @@ private:
 	void reset();
     void pulseEnable();
 
+    TPositionS1D13700 _cursorPos; //position of cursor, of course!
     
     uint8_t _current_layer; //1, 2 or 3.
-    uint8_t _current_layer_mempos; //memory position of current layer
+    uint16_t _current_layer_mempos; //memory position of current layer
 	uint8_t _res_pin; // LOW: Active. HIGH: Reset.
 	uint8_t _a0_pin; // LOW: command.  HIGH: character.
 	uint8_t _cs_pin; // LOW: select chip.  HIGH: bus will ignore commands.
