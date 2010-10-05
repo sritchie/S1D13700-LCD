@@ -51,7 +51,7 @@
 //functions for splitting hex
 #define HINIBBLE(b) (((b) & 0xFF00) >> 8) //thanks, wiki! (Article on Nibbles)
 #define LONIBBLE(b) ((b) & 0x00FF) //thanks, wiki! (Article on Nibbles)
-
+#define swap(a, b) { uint8_t t = a; a = b; b = t; }
 
 struct TPositionS1D13700
 {
@@ -101,6 +101,7 @@ public:
     void setMemPosition(uint8_t, uint8_t);
     void setPosition(uint8_t, uint8_t);
     void setPixel(uint8_t, uint8_t, uint8_t);
+    void drawLine(uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1, uint8_t color);
 
     uint8_t readByte(uint8_t xPos, uint8_t yPos);
     

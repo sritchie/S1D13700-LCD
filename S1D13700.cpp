@@ -266,22 +266,31 @@ void S1D13700::begin() {
     }
 
     //get the damned pixel value
-    uint8_t thePixels = readByte(5, 179);
+    // uint8_t thePixels = readByte(5, 179);
     
-    switchLayer(2);
-    setCursor(0,0);
-    command(MEMWRITE);
+    // switchLayer(2);
 
-    for (int row = 0; row < 60; row++) {
-        for (int col = 0; col < 40; col++) {
-            if (row % 2 == 0) {
-                write(thePixels);
-            }
-            else {
-                write(0x00);
-            }
-        }
-    }
+    // for (int i = 0; i < 100; i++)
+    //     {
+    //         for (int j = 0; j < 100; j++)
+    //             {
+    //                 setPixel(i,j,1);
+    //             }
+    //     }
+    
+    // setCursor(0,0);
+    // command(MEMWRITE);
+
+    // for (int row = 0; row < 60; row++) {
+    //     for (int col = 0; col < 40; col++) {
+    //         if (row % 2 == 0) {
+    //             write(thePixels);
+    //         }
+    //         else {
+    //             write(0x00);
+    //         }
+    //     }
+    // }
 }
 
 
@@ -331,13 +340,57 @@ void S1D13700::setPixel(uint8_t xPos, uint8_t yPos, uint8_t color) {
 
     uint8_t xBit = 0x80 >> (xPos % 8); //x position along the character of the bit to be flipped.
 
-    command(MEMWRITE);
-    write(xBit);
+    //this functionality can be found in readByte as well, but we want to skip the cursor set. Optimize later!
+    command(MEMREAD);
+    uint8_t pix = read();
 
-    //to expand this, I actually do have to read from the display and see what's getting displayed right now.
-    //that way I can take a line and modify it.
+    setCursor(xPos / 8, yPos); //the x should be divided by bits per character... y's good as "lines"
+
+    //operation
+    pix |= xBit;
+    
+    command(MEMWRITE);
+    write(pix);
 }
 
+// bresenham's algorithm - thx wikpedia
+void S1D13700::drawLine(uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1, uint8_t color) {
+    uint8_t steep = abs(y1 - y0) > abs(x1 - x0);
+    if (steep) {
+        swap(x0, y0);
+        swap(x1, y1);
+    }
+
+    if (x0 > x1) {
+        swap(x0, x1);
+        swap(y0, y1);
+    }
+
+    uint8_t dx, dy;
+    dx = x1 - x0;
+    dy = abs(y1 - y0);
+
+    int8_t err = dx / 2;
+    int8_t ystep;
+
+    if (y0 < y1) {
+        ystep = 1;
+    } else {
+        ystep = -1;}
+
+    for (; x0<x1; x0++) {
+        if (steep) {
+            setPixel(y0, x0, color);
+        } else {
+            setPixel(x0, y0, color);
+        }
+        err -= dy;
+        if (err < 0) {
+            y0 += ystep;
+            err += dx;
+        }
+    }
+}
 
 /*********** mid level commands, for sending data/cmds */
 
