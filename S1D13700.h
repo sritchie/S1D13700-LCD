@@ -100,8 +100,8 @@ public:
     //drawing commands
     void setMemPosition(uint8_t, uint8_t);
     void setPosition(uint8_t, uint8_t);
-    void setPixel(uint8_t, uint8_t, uint8_t);
-    void drawLine(uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1, uint8_t color);
+    void setPixel(uint16_t, uint16_t, uint8_t);
+    void drawLine(uint16_t x0, uint8_t y0, uint16_t x1, uint8_t y1, uint8_t color);
 
     uint8_t readByte(uint8_t xPos, uint8_t yPos);
     

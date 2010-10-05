@@ -248,49 +248,6 @@ void S1D13700::begin() {
 	command(CSRDIR_RIGHT);
 
     switchLayer(1); //switch so drawing occurs on second layer.
-    setCursor(0,179);
-
-    command(MEMWRITE);
-
-    for (int row = 0; row < 60; row++) {
-        for (int col = 0; col < 40; col++)
-            {
-                if (row % 2 == 0)
-                    {
-                        write(0xF1);                        
-                    }
-                else {
-                    write(0x00);
-                }
-            }
-    }
-
-    //get the damned pixel value
-    // uint8_t thePixels = readByte(5, 179);
-    
-    // switchLayer(2);
-
-    // for (int i = 0; i < 100; i++)
-    //     {
-    //         for (int j = 0; j < 100; j++)
-    //             {
-    //                 setPixel(i,j,1);
-    //             }
-    //     }
-    
-    // setCursor(0,0);
-    // command(MEMWRITE);
-
-    // for (int row = 0; row < 60; row++) {
-    //     for (int col = 0; col < 40; col++) {
-    //         if (row % 2 == 0) {
-    //             write(thePixels);
-    //         }
-    //         else {
-    //             write(0x00);
-    //         }
-    //     }
-    // }
 }
 
 
@@ -331,12 +288,12 @@ uint8_t S1D13700::readByte(uint8_t xPos, uint8_t yPos) {
 
 // the most basic function, set a single pixel.
 // (later, add support for a white or black pen.)
-void S1D13700::setPixel(uint8_t xPos, uint8_t yPos, uint8_t color) {
+void S1D13700::setPixel(uint16_t xPos, uint16_t yPos, uint8_t color) {
     if ((xPos >= LCDWIDTH) || (yPos >= LCDHEIGHT))
         return;
 
     //set the cursor to the proper character position"
-    setCursor(xPos / 8, yPos); //the x should be divided by bits per character... y's good as "lines"
+    setCursor(xPos >> 3, yPos); //the x should be divided by bits per character... y's good as "lines"
 
     uint8_t xBit = 0x80 >> (xPos % 8); //x position along the character of the bit to be flipped.
 
@@ -344,7 +301,7 @@ void S1D13700::setPixel(uint8_t xPos, uint8_t yPos, uint8_t color) {
     command(MEMREAD);
     uint8_t pix = read();
 
-    setCursor(xPos / 8, yPos); //the x should be divided by bits per character... y's good as "lines"
+    setCursor(xPos >> 3, yPos); //the x should be divided by bits per character... y's good as "lines"
 
     //operation
     pix |= xBit;
@@ -354,7 +311,7 @@ void S1D13700::setPixel(uint8_t xPos, uint8_t yPos, uint8_t color) {
 }
 
 // bresenham's algorithm - thx wikpedia
-void S1D13700::drawLine(uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1, uint8_t color) {
+void S1D13700::drawLine(uint16_t x0, uint8_t y0, uint16_t x1, uint8_t y1, uint8_t color) {
     uint8_t steep = abs(y1 - y0) > abs(x1 - x0);
     if (steep) {
         swap(x0, y0);
