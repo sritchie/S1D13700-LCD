@@ -102,6 +102,14 @@ public:
     void setPosition(uint8_t, uint8_t);
     void setPixel(uint16_t, uint16_t, uint8_t);
     void drawLine(uint16_t x0, uint8_t y0, uint16_t x1, uint8_t y1, uint8_t color);
+    void fillCircle(uint16_t x0, uint8_t y0, uint8_t r, 
+                    uint8_t color);
+    void drawCircle(uint16_t x0, uint8_t y0, uint8_t r, 
+                    uint8_t color);
+    void drawRect(uint16_t x, uint8_t y, uint16_t w, uint8_t h, 
+                  uint8_t color);
+    void fillRect(uint16_t x, uint8_t y, uint16_t w, uint8_t h, 
+                  uint8_t color);
 
     uint8_t readByte(uint8_t xPos, uint8_t yPos);
     

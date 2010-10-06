@@ -349,6 +349,103 @@ void S1D13700::drawLine(uint16_t x0, uint8_t y0, uint16_t x1, uint8_t y1, uint8_
     }
 }
 
+// filled rectangle
+void S1D13700::fillRect(uint16_t x, uint8_t y, uint16_t w, uint8_t h, 
+                      uint8_t color) {
+
+    // stupidest version - just pixels - but fast with internal buffer!
+    for (uint16_t i=x; i<x+w; i++) {
+        for (uint8_t j=y; j<y+h; j++) {
+            setPixel(i, j, color);
+        }
+    }
+}
+
+// draw a rectangle
+void S1D13700::drawRect(uint16_t x, uint8_t y, uint16_t w, uint8_t h, 
+                      uint8_t color) {
+    // stupidest version - just pixels - but fast with internal buffer!
+    for (uint16_t i=x; i<x+w; i++) {
+        setPixel(i, y, color);
+        setPixel(i, y+h-1, color);
+    }
+    for (uint8_t i=y; i<y+h; i++) {
+        setPixel(x, i, color);
+        setPixel(x+w-1, i, color);
+    } 
+}
+
+// draw a circle outline
+void S1D13700::drawCircle(uint16_t x0, uint8_t y0, uint8_t r, 
+                        uint8_t color) {
+    int8_t f = 1 - r;
+    int8_t ddF_x = 1;
+    int8_t ddF_y = -2 * r;
+    int8_t x = 0;
+    int8_t y = r;
+
+    setPixel(x0, y0+r, color);
+    setPixel(x0, y0-r, color);
+    setPixel(x0+r, y0, color);
+    setPixel(x0-r, y0, color);
+
+    while (x<y) {
+        if (f >= 0) {
+            y--;
+            ddF_y += 2;
+            f += ddF_y;
+        }
+        x++;
+        ddF_x += 2;
+        f += ddF_x;
+  
+        setPixel(x0 + x, y0 + y, color);
+        setPixel(x0 - x, y0 + y, color);
+        setPixel(x0 + x, y0 - y, color);
+        setPixel(x0 - x, y0 - y, color);
+    
+        setPixel(x0 + y, y0 + x, color);
+        setPixel(x0 - y, y0 + x, color);
+        setPixel(x0 + y, y0 - x, color);
+        setPixel(x0 - y, y0 - x, color);
+    
+    }
+}
+
+void S1D13700::fillCircle(uint16_t x0, uint8_t y0, uint8_t r, 
+                        uint8_t color) {
+    int8_t f = 1 - r;
+    int8_t ddF_x = 1;
+    int8_t ddF_y = -2 * r;
+    int8_t x = 0;
+    int8_t y = r;
+
+    for (uint16_t i= y0 - r; i<=y0+r; i++) {
+        setPixel(x0, i, color);
+    }
+
+    while (x<y) {
+        if (f >= 0) {
+            y--;
+            ddF_y += 2;
+            f += ddF_y;
+        }
+        x++;
+        ddF_x += 2;
+        f += ddF_x;
+  
+        for (uint16_t i = y0 - y; i <= y0 + y; i++) {
+            setPixel(x0 + x, i, color);
+            setPixel(x0 - x, i, color);
+        } 
+        for (uint16_t i = y0 - x; i <= y0 + x; i++) {
+            setPixel(x0 + y, i, color);
+            setPixel(x0 - y, i, color);
+        }    
+    }
+}
+
+
 /*********** mid level commands, for sending data/cmds */
 
 inline void S1D13700::command(uint8_t value) {
@@ -370,7 +467,7 @@ uint8_t S1D13700::read() {
     digitalWrite(_rw_pin, HIGH);
 
     digitalWrite(_enable_pin, HIGH);
-    delayMicroseconds(1);
+    delayMicroseconds(10);
 
     //go through pin array, 
     for (int i = 0; i < 8; i++) {
@@ -379,7 +476,7 @@ uint8_t S1D13700::read() {
     }
 
     digitalWrite(_enable_pin, LOW);
-    delayMicroseconds(2);
+    delayMicroseconds(10);
 
     return ret;
 }
